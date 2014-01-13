@@ -17,7 +17,6 @@ except ImportError:
 
 import progressbar
 
-from django.db import transaction
 from django.core.management.base import BaseCommand
 from django.db import transaction, reset_queries, IntegrityError
 from django.utils.encoding import force_text
