@@ -4,11 +4,12 @@ import six
 import re
 
 from django.utils.encoding import python_2_unicode_compatible
-
 from django.utils.encoding import force_text
 from django.db.models import signals
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes import generic
 
 from unidecode import unidecode
 
@@ -20,7 +21,7 @@ from .settings import *
 
 
 __all__ = ['Country', 'Region', 'City', 'CONTINENT_CHOICES', 'to_search',
-    'to_ascii']
+    'to_ascii', 'Translation']
 
 ALPHA_REGEXP = re.compile('[\W_]+', re.UNICODE)
 
@@ -129,7 +130,7 @@ class Region(Base):
     country = models.ForeignKey(Country)
 
     class Meta(Base.Meta):
-        unique_together = (('country', 'name'), )
+        unique_together = (('country', 'name'),)
         verbose_name = _('region/state')
         verbose_name_plural = _('regions/states')
 
@@ -234,3 +235,21 @@ def city_search_names(sender, instance, **kwargs):
 
     instance.search_names = ' '.join(search_names)
 signals.pre_save.connect(city_search_names, sender=City)
+
+
+@python_2_unicode_compatible
+class Translation(models.Model):
+    name = models.CharField(_('name'), max_length=200, db_index=True)
+    lang = models.CharField(_('language code'), max_length=4)
+
+    content_type = models.ForeignKey(ContentType)
+    geoname_id = models.PositiveIntegerField()
+    object = generic.GenericForeignKey('content_type', 'geoname_id')
+
+    class Meta:
+        verbose_name = _('translation')
+        verbose_name_plural = _('translations')
+        unique_together = (('geoname_id', 'lang', 'content_type'),)
+
+    def __str__(self):
+        return self.name

@@ -52,6 +52,7 @@ class RegionAdmin(admin.ModelAdmin):
         'name',
         'country',
     )
+    raw_id_fields = ['country', ]
     form = RegionForm
 admin.site.register(Region, RegionAdmin)
 
@@ -86,3 +87,23 @@ class CityAdmin(admin.ModelAdmin):
         return CityChangeList
 
 admin.site.register(City, CityAdmin)
+
+
+class TranslationAdmin(admin.ModelAdmin):
+    """
+    ModelAdmin for Translation.
+    """
+    list_filter = (
+        'lang',
+    )
+    search_fields = (
+        'name',
+    )
+    list_display = (
+        'name',
+        'lang',
+        'content_type',
+        'geoname_id',
+    )
+
+admin.site.register(Translation, TranslationAdmin)

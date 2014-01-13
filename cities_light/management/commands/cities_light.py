@@ -20,6 +20,7 @@ import progressbar
 from django.core.management.base import BaseCommand
 from django.db import transaction, reset_queries, IntegrityError
 from django.utils.encoding import force_text
+from django.contrib.contenttypes.models import ContentType
 
 from ...exceptions import *
 from ...signals import *
@@ -81,6 +82,10 @@ It is possible to force the import of files which weren't downloaded using the
         optparse.make_option('--hack-translations', action='store_true',
             default=False,
             help='Set this if you intend to import translations a lot'
+        ),
+        optparse.make_option('--need-translations', action='store_true',
+            default=False,
+            help='Set this if you intend to import translations for all objects'
         ),
     )
 
@@ -190,7 +195,7 @@ It is possible to force the import of files which weren't downloaded using the
                 self.translation_data = pickle.load(f)
 
         self.logger.info('Importing parsed translation in the database')
-        self.translation_import()
+        self.translation_import(options.get('need_translations', False))
 
         with open(install_file_path, 'wb+') as f:
             pickle.dump(datetime.datetime.now(), f)
@@ -403,7 +408,7 @@ It is possible to force the import of files which weren't downloaded using the
 
         self.translation_data[model_class][items[1]][items[2]].append(items[3])
 
-    def translation_import(self):
+    def translation_import(self, save_translations=False):
         data = getattr(self, 'translation_data', None)
 
         if not data:
@@ -437,6 +442,9 @@ It is possible to force the import of files which weren't downloaded using the
 
                     for name in names:
                         name = force_text(name)
+                        if save_translations:
+                            self.save_translation(model_class, geoname_id,
+                                                  lang, name)
                         if name == model.name:
                             continue
 
@@ -455,6 +463,24 @@ It is possible to force the import of files which weren't downloaded using the
                 progress.update(i)
 
         progress.finish()
+
+    def get_ct(self, model_class):
+        if not hasattr(self, '_ct_cache'):
+            self._ct_cache = {}
+        if model_class not in self._ct_cache:
+            self._ct_cache[model_class] = \
+                            ContentType.objects.get_for_model(model_class)
+        return self._ct_cache[model_class]
+
+    def save_translation(self, model_class, geoname_id, lang, name):
+        try:
+            trans = Translation.objects.get(geoname_id=geoname_id, lang=lang)
+            trans.name = name
+            trans.save()
+        except Translation.DoesNotExist:
+            trans = Translation.objects.create(geoname_id=geoname_id,
+                        lang=lang, content_type=self.get_ct(model_class),
+                        name=name)
 
     def save(self, model):
         sid = transaction.savepoint()
