@@ -53,7 +53,7 @@ from django.conf import settings
 
 __all__ = ['COUNTRY_SOURCES', 'REGION_SOURCES', 'CITY_SOURCES',
     'TRANSLATION_LANGUAGES', 'TRANSLATION_SOURCES', 'SOURCES', 'DATA_DIR',
-    'INDEX_SEARCH_NAMES', ]
+    'INDEX_SEARCH_NAMES', 'USE_TRANSLATION', 'DEFAULT_TRANSLATION']
 
 COUNTRY_SOURCES = getattr(settings, 'CITIES_LIGHT_COUNTRY_SOURCES',
     ['http://download.geonames.org/export/dump/countryInfo.txt'])
@@ -65,6 +65,10 @@ TRANSLATION_SOURCES = getattr(settings, 'CITIES_LIGHT_TRANSLATION_SOURCES',
     ['http://download.geonames.org/export/dump/alternateNames.zip'])
 TRANSLATION_LANGUAGES = getattr(settings, 'CITIES_LIGHT_TRANSLATION_LANGUAGES',
     ['es', 'en', 'pt', 'de', 'pl', 'abbr'])
+
+DEFAULT_TRANSLATION = getattr(settings, 'CITIES_LIGHT_DEFAULT_TRANSLATION',
+    'en')
+USE_TRANSLATION = getattr(settings, 'CITIES_LIGHT_USE_TRANSLATION', False)
 
 SOURCES = list(COUNTRY_SOURCES) + list(REGION_SOURCES) + list(CITY_SOURCES)
 SOURCES += TRANSLATION_SOURCES

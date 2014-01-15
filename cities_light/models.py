@@ -6,7 +6,7 @@ import re
 from django.utils.encoding import python_2_unicode_compatible
 from django.utils.encoding import force_text
 from django.db.models import signals
-from django.db import models
+from django.db import models, DEFAULT_DB_ALIAS
 from django.utils.translation import ugettext_lazy as _
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
@@ -78,6 +78,24 @@ def set_display_name(sender, instance=None, **kwargs):
 
 
 @python_2_unicode_compatible
+class Translation(models.Model):
+    name = models.CharField(_('name'), max_length=200, db_index=True)
+    lang = models.CharField(_('language code'), max_length=4)
+
+    content_type = models.ForeignKey(ContentType)
+    object_id = models.IntegerField(null=True, blank=True)
+    object = generic.GenericForeignKey('content_type', 'object_id')
+
+    class Meta:
+        verbose_name = _('translation')
+        verbose_name_plural = _('translations')
+        unique_together = (('object_id', 'lang', 'content_type'),)
+
+    def __str__(self):
+        return self.name
+
+
+@python_2_unicode_compatible
 class Base(models.Model):
     """
     Base model with boilerplate for all models.
@@ -88,15 +106,30 @@ class Base(models.Model):
     geoname_id = models.IntegerField(null=True, blank=True, unique=True)
     alternate_names = models.TextField(null=True, blank=True, default='')
 
+    translations = generic.GenericRelation(Translation)
+
     class Meta:
         abstract = True
         ordering = ['name']
 
     def __str__(self):
+        return self.get_display_name()
+
+    def get_display_name(self, force=False):
         display_name = getattr(self, 'display_name', None)
-        if display_name:
+        if not force and display_name:
             return display_name
-        return self.name
+        if USE_TRANSLATION:
+            name = self.get_translated_name()
+        if name is None:
+            name = self.name
+        return name
+
+    def get_translated_name(self, lang=DEFAULT_TRANSLATION):
+        try:
+            return self.translations.get(lang=lang).name
+        except:
+            return None
 
 
 class Country(Base):
@@ -134,8 +167,10 @@ class Region(Base):
         verbose_name = _('region/state')
         verbose_name_plural = _('regions/states')
 
-    def get_display_name(self):
-        return '%s, %s' % (self.name, self.country.name)
+    def get_display_name(self, force=False):
+        if not force and self.display_name:
+            return self.display_name
+        return '%s, %s' % (Base.get_display_name(self, force=True), self.country)
 
 signals.pre_save.connect(set_name_ascii, sender=Region)
 signals.pre_save.connect(set_display_name, sender=Region)
@@ -189,12 +224,15 @@ class City(Base):
         unique_together = (('region', 'name'),)
         verbose_name_plural = _('cities')
 
-    def get_display_name(self):
+    def get_display_name(self, force=False):
+        if not force and self.display_name:
+            return self.display_name
+
+        name = Base.get_display_name(self, force=True)
         if self.region_id:
-            return '%s, %s, %s' % (self.name, self.region.name,
-                self.country.name)
+            return '%s, %s' % (name, self.region)
         else:
-            return '%s, %s' % (self.name, self.country.name)
+            return '%s, %s' % (name, self.country)
 signals.pre_save.connect(set_name_ascii, sender=City)
 signals.pre_save.connect(set_display_name, sender=City)
 
@@ -235,21 +273,3 @@ def city_search_names(sender, instance, **kwargs):
 
     instance.search_names = ' '.join(search_names)
 signals.pre_save.connect(city_search_names, sender=City)
-
-
-@python_2_unicode_compatible
-class Translation(models.Model):
-    name = models.CharField(_('name'), max_length=200, db_index=True)
-    lang = models.CharField(_('language code'), max_length=4)
-
-    content_type = models.ForeignKey(ContentType)
-    geoname_id = models.PositiveIntegerField()
-    object = generic.GenericForeignKey('content_type', 'geoname_id')
-
-    class Meta:
-        verbose_name = _('translation')
-        verbose_name_plural = _('translations')
-        unique_together = (('geoname_id', 'lang', 'content_type'),)
-
-    def __str__(self):
-        return self.name

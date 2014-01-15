@@ -14,17 +14,17 @@ class Migration(SchemaMigration):
             ('name', self.gf('django.db.models.fields.CharField')(max_length=200, db_index=True)),
             ('lang', self.gf('django.db.models.fields.CharField')(max_length=4)),
             ('content_type', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['contenttypes.ContentType'])),
-            ('geoname_id', self.gf('django.db.models.fields.PositiveIntegerField')()),
+            ('object_id', self.gf('django.db.models.fields.IntegerField')(null=True, blank=True)),
         ))
         db.send_create_signal(u'cities_light', ['Translation'])
 
-        # Adding unique constraint on 'Translation', fields ['geoname_id', 'lang', 'content_type']
-        db.create_unique(u'cities_light_translation', ['geoname_id', 'lang', 'content_type_id'])
+        # Adding unique constraint on 'Translation', fields ['object_id', 'lang', 'content_type']
+        db.create_unique(u'cities_light_translation', ['object_id', 'lang', 'content_type_id'])
 
 
     def backwards(self, orm):
-        # Removing unique constraint on 'Translation', fields ['geoname_id', 'lang', 'content_type']
-        db.delete_unique(u'cities_light_translation', ['geoname_id', 'lang', 'content_type_id'])
+        # Removing unique constraint on 'Translation', fields ['object_id', 'lang', 'content_type']
+        db.delete_unique(u'cities_light_translation', ['object_id', 'lang', 'content_type_id'])
 
         # Deleting model 'Translation'
         db.delete_table(u'cities_light_translation')
@@ -74,12 +74,12 @@ class Migration(SchemaMigration):
             'slug': ('autoslug.fields.AutoSlugField', [], {'unique_with': '()', 'max_length': '50', 'populate_from': "'name_ascii'"})
         },
         u'cities_light.translation': {
-            'Meta': {'unique_together': "(('geoname_id', 'lang', 'content_type'),)", 'object_name': 'Translation'},
+            'Meta': {'unique_together': "(('object_id', 'lang', 'content_type'),)", 'object_name': 'Translation'},
             'content_type': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['contenttypes.ContentType']"}),
-            'geoname_id': ('django.db.models.fields.PositiveIntegerField', [], {}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'lang': ('django.db.models.fields.CharField', [], {'max_length': '4'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '200', 'db_index': 'True'})
+            'name': ('django.db.models.fields.CharField', [], {'max_length': '200', 'db_index': 'True'}),
+            'object_id': ('django.db.models.fields.IntegerField', [], {'null': 'True', 'blank': 'True'})
         },
         u'contenttypes.contenttype': {
             'Meta': {'ordering': "('name',)", 'unique_together': "(('app_label', 'model'),)", 'object_name': 'ContentType', 'db_table': "'django_content_type'"},

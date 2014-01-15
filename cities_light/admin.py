@@ -103,7 +103,7 @@ class TranslationAdmin(admin.ModelAdmin):
         'name',
         'lang',
         'content_type',
-        'geoname_id',
+        'object_id',
     )
 
 admin.site.register(Translation, TranslationAdmin)
