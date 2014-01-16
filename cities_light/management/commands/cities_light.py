@@ -398,6 +398,8 @@ It is possible to force the import of files which weren't downloaded using the
 
         if save:
             self.save(city)
+        elif self.save_translation and city.geoname_id:
+            self.geoname_id2pk[int(city.geoname_id)] = city.pk
 
     def translation_parse(self, items, save_translation=False, cache_data=True):
         if not hasattr(self, 'translation_data'):
